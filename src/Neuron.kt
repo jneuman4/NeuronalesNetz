@@ -1,26 +1,27 @@
 abstract class Neuron(var output: Double = 0.0, val bias: Boolean = false) {
 
+    var derivative = 0.0
+    var error = 0.0
     //Sigmoid
     companion object fun f(x: Double) = 1.0/ (1.0 + kotlin.math.exp(-x))
 
     //All Connections this Neuron is Connected to
     val connections = mutableListOf<NeuronConnection>()
 
-    fun calculateOutput(): Double{
-        if (bias) return output
+    fun calculateOutput(){
+        if (bias) return
 
         var sum = 0.0
-        for (i in 0 until connections.size){
+        for (connection in connections){
             // Is this connection moving forward to us
             // Ignore connections that we send our output to
-            //TODO: Understand this
-            if (connections[i].to == this) {
-                sum += connections[i].from.output*connections[i].weight
+            if (connection.to == this) {
+                sum += connection.from.output*connection.weight
             }
         }
         // Output of this Neuron is the result of the sigmoid function
         output = f(sum)
-        return output
+        derivative = output * (1 - output)
     }
 
 }

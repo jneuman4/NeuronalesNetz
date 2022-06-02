@@ -1,95 +1,121 @@
-class Network (inputTotal: Int, hiddenTotal: Int){
+class Network (inputTotal: Int, hiddenTotal: Int, outputTotal: Int){
 
-    private val LEARNING_CONSTANT = 0.5
+    private val LEARNING_CONSTANT = 0.3
 
-    private val input = mutableListOf<InputNeuron>()
-    private val hidden = mutableListOf<HiddenNeuron>()
-    private val output = OutputNeuron()
+    private val inputNeurons = mutableListOf<InputNeuron>()
+    private val hiddenNeurons = mutableListOf<HiddenNeuron>()
+    private val outputNeurons = mutableListOf<OutputNeuron>()
 
     init {
         //Create input Layer
         for (i in 0 until  inputTotal){
-            input.add(InputNeuron())
+            inputNeurons.add(InputNeuron())
         }
-        input.add(InputNeuron(1.0, true))
+        inputNeurons.add(InputNeuron(1.0, true))
         //Create hidden Layer
         for (i in 0 until  hiddenTotal){
-            hidden.add(HiddenNeuron())
+            hiddenNeurons.add(HiddenNeuron())
         }
-        hidden.add(HiddenNeuron(1.0, true))
+        hiddenNeurons.add(HiddenNeuron(1.0, true))
+        //Create output Layer
+        for (i in 0 until  outputTotal){
+            outputNeurons.add(OutputNeuron())
+        }
+
 
         //Connections
-        //Input -> Hidden
-        for (i in 0 until input.size){
-            for (j in 0 until hidden.size){
-                val con = NeuronConnection(input[i], hidden[j])
-                input[i].connections.add(con)
-                hidden[j].connections.add(con)
+        //Input <-> Hidden
+        for (i in 0 until inputNeurons.size){
+            for (j in 0 until hiddenNeurons.size){
+                val con = NeuronConnection(inputNeurons[i], hiddenNeurons[j])
+                inputNeurons[i].connections.add(con)
+                hiddenNeurons[j].connections.add(con)
             }
         }
-        //Hidden -> Output
-        for (i in 0 until hidden.size){
-            val con = NeuronConnection(input[i], output)
-            input[i].connections.add(con)
-            output.connections.add(con)
+        //Hidden <-> Output
+        for (i in 0 until hiddenNeurons.size){
+            for (j in 0 until outputNeurons.size) {
+                val con = NeuronConnection(hiddenNeurons[i], outputNeurons[j])
+                hiddenNeurons[i].connections.add(con)
+                outputNeurons[j].connections.add(con)
+            }
         }
+        println("Inputs: "+ inputNeurons.size)
+        println("Hidden: "+ hiddenNeurons.size)
+        println("Outputs: "+ outputNeurons.size)
     }
 
-    fun feedForward(inputValues: ArrayList<Double>): Double{//TODO: ArrayList??
+    fun feedForward(inputValues: MutableList<Double>){
 
         for (i in 0 until inputValues.size){
-            input[i].inputVal(inputValues[i])
+            inputNeurons[i].inputVal(inputValues[i])
         }
-        for (i in 0 until hidden.size){
-            hidden[i].calculateOutput()
+        for (i in 0 until hiddenNeurons.size){
+            hiddenNeurons[i].calculateOutput()
         }
-        return output.calculateOutput()
+        for (i in 0 until outputNeurons.size){
+            outputNeurons[i].calculateOutput()
+        }
     }
 
 
-    fun train(inputValues: ArrayList<Double>, answer:Double): Double{
-        val result = feedForward(inputValues)
+    fun train(inputValues: MutableList<Double>, answers:MutableList<Double>){
+        //Forwards
+        feedForward(inputValues)
 
-        // This is where the error correction all starts
-        // Derivative of sigmoid output function * diff between known and guess
-        val deltaOutput = result * (1-result) * (answer-result)
-
-        // BACKPROPAGATION
-        // This is easier b/c we just have one output
-        // Apply Delta to connections between hidden and output
-        var connections = output.connections
-        for (i in 0 until connections.size){
-            val deltaWeight = connections[i].from.output * deltaOutput
-            connections[i].adjustWeight(LEARNING_CONSTANT * deltaWeight)
+        //Backwards
+        //calculate errors
+        for (i in 0 until outputNeurons.size){
+            outputNeurons[i].error = outputNeurons[i].output - answers[i] * outputNeurons[i].derivative
         }
-
-        // ADJUST HIDDEN WEIGHTS
-        for (i in 0 until hidden.size){
-            connections = hidden[i].connections
+        for (i in hiddenNeurons.lastIndex downTo 0){
+            val hiddenN = hiddenNeurons[i]
             var sum = 0.0
-
-            // Sum output delta * hidden layer connections (just one output)
-            for (j in 0 until connections.size){
-                // Is this a connection from hidden layer to next layer (output)?
-                if (connections[j].from == hidden[i]){
-                    sum += connections[j].weight*deltaOutput
+            for (connection in hiddenN.connections){
+                if (hiddenN == connection.from){
+                    sum += connection.weight * connection.to.error
                 }
             }
-
-            for (j in 0 until connections.size){
-                if (connections[j].to == hidden[i]){
-                    var deltaHidden = hidden[i].output * (1-hidden[i].output) // Derivate of Sigmoid
-                    deltaHidden *= sum
-                    val deltaWeight = connections[j].from.output * deltaHidden
-                    connections[j].adjustWeight(LEARNING_CONSTANT * deltaWeight)
-                }
-            }
-
+            hiddenN.error = sum * hiddenN.derivative
         }
 
-        return result
+        //update weights
+        for (hiddenN in hiddenNeurons){
+            val delta = - LEARNING_CONSTANT * hiddenN.error
+            for (connection in hiddenN.connections){
+                if (hiddenN == connection.to){
+                    connection.weight += delta * connection.from.output
+                }
+            }
+        }
+        for (outputN in outputNeurons){
+            val delta = - LEARNING_CONSTANT * outputN.error
+            for (connection in outputN.connections){
+                if (outputN == connection.to){
+                    connection.weight += delta * connection.from.output
+                }
+            }
+        }
+
+
+        //DEBUG
+        for (outputN in outputNeurons){
+            println("Out: " + outputN.output)
+            for (connection in outputN.connections){
+                if (outputN == connection.to){
+                    println("We: " + connection.weight)
+                }
+            }
+        }
+
     }
 
 
-
+    fun indexOfHighestValue(): Int{
+        var highest = 0
+        for (i in 1 until outputNeurons.size){
+            if (outputNeurons[i].output > outputNeurons[highest].output) highest = i
+        }
+        return highest
+    }
 }

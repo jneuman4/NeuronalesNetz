@@ -5,13 +5,17 @@ import java.util.List;
 
 public class Mnist {
 
-    public static void main(String[] args) {
-        Network network = new Network(784, 50, 10);
-        TrainSet set = createTrainSet(0,4999);
-        trainData(network, set);
+    private static TrainSet testSet;
 
-        TrainSet testSet = createTrainSet(5000,9999);
-        testTrainSet(network, testSet);
+    public static void main(String[] args) {
+        int[] layers = new int[]{70, 35};
+        Network network = new Network(784, layers, 10);
+        TrainSet set = createTrainSet(0,4999);
+        testSet = createTrainSet(5000,9999);
+
+
+        trainData(network, set, 100);
+
     }
 
     public static TrainSet createTrainSet(int start, int end) {
@@ -51,11 +55,16 @@ public class Mnist {
          return set;
     }
 
-    public static void trainData(Network net, TrainSet set) {
-        for(int i = 0; i < set.size();i++) {
-            net.train(set.getInput(i), set.getOutput(i));
-            if (i%100 == 0) System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>   "+ i + "   <<<<<<<<<<<<<<<<<<<<<<<<<<");
+    public static void trainData(Network net, TrainSet set, int epochs) {
+        for (int e = 0; e < epochs; e++){
+            for(int i = 0; i < set.size();i++) {
+                net.train(set.getInput(i), set.getOutput(i));
+                if (i%100 == 0) System.out.println(">>>  " +i+ "  <<<");
+            }
+            System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>   "+ e + "   <<<<<<<<<<<<<<<<<<<<<<<<<<");
+            if (e%5==0)testTrainSet(net, testSet);
         }
+        testTrainSet(net, testSet);
     }
 
     public static void testTrainSet(Network net, TrainSet set) {
@@ -74,10 +83,10 @@ public class Mnist {
 
                 correct ++ ;
             }
-            if(i % 10 == 0) {
+            //if(i % 10 == 0) {
                 //System.out.println(i + ": " + (double)correct / (double) (i + 1));
-                System.out.println(i + ": " +highest +" - " + actualHighest);
-            }
+                //System.out.println(i + ": " +highest +" - " + actualHighest);
+            //}
         }
         System.out.println("Testing finished, RESULT: " + correct + " / " + set.size()+ "  -> " + (double)correct / (double)set.size() +" %");
 

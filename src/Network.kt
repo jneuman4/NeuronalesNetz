@@ -1,6 +1,6 @@
 class Network (inputTotal: Int, hiddenLayer: IntArray, outputTotal: Int){
 
-    private val LEARNING_CONSTANT = 0.3
+    private val LEARNING_CONSTANT = 0.5
 
     private val inputNeurons = mutableListOf<InputNeuron>()
     private val layers = mutableListOf<Layer>()
@@ -89,7 +89,7 @@ class Network (inputTotal: Int, hiddenLayer: IntArray, outputTotal: Int){
         //Backwards
         //calculate errors
         for (i in 0 until outputNeurons.size){
-            outputNeurons[i].error = outputNeurons[i].output - answers[i] * outputNeurons[i].derivative
+            outputNeurons[i].error = (outputNeurons[i].output - answers[i]) * outputNeurons[i].derivative
         }
         for (li in layers.lastIndex downTo 0){
             val l = layers[li]
@@ -126,17 +126,6 @@ class Network (inputTotal: Int, hiddenLayer: IntArray, outputTotal: Int){
                 }
             }
         }
-
-
-        //DEBUG
-        /*for (outputN in outputNeurons){
-            println("Out: " + outputN.output)
-            for (connection in outputN.connections){
-                if (outputN == connection.to){
-                    println("We: " + connection.weight)
-                }
-            }
-        }*/
 
     }
 

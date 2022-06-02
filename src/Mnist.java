@@ -14,7 +14,7 @@ public class Mnist {
         testSet = createTrainSet(5000,9999);
 
 
-        trainData(network, set, 100);
+        trainData(network, set, 10);
 
     }
 
